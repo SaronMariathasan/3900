@@ -23,6 +23,74 @@ interface Group {
 const app = express();
 const port = 3902;
 
+// data
+
+// students
+let students: Student[] = [
+{
+  id: 1,
+  name: "Bethenny"
+},
+{
+  id: 2,
+  name: "Carole"
+},
+{
+  id: 3, 
+  name: "Ramona"
+},
+{
+  id: 4, 
+  name: "Luann"
+},
+{
+  id: 5,
+  name: "Sonja"
+},
+{
+  id: 6,
+  name: "Dorinda"
+},
+{
+  id: 7,
+  name: "Jill"
+},
+{
+  id: 8,
+  name: "tinsley"
+}
+];
+
+//groups
+let groups: GroupSummary[] = [
+  {
+  id: 1, 
+  groupName: "TeamB",
+  members: [1, 4, 5]
+  },
+{
+  id: 2, 
+  groupName: "TeamC",
+  members: [2, 3, 6]
+},
+{
+  id: 3,
+  groupName: "TeamZ",
+  members: [7,8]
+}
+];
+
+let groupCounter = 4;
+
+// helper functions
+// function findGroup(id: number, currElement: GroupSummary, index: number, array: GroupSummary[]) {
+//   if (currElement.id == id) {
+//     return true;
+//   } else {
+//     return false;
+//   }
+// }
+
 app.use(cors());
 app.use(express.json());
 
@@ -33,18 +101,7 @@ app.use(express.json());
  */
 app.get('/api/groups', (req: Request, res: Response) => {
   // TODO: (sample response below)
-  res.json([
-    {
-      id: 1,
-      groupName: 'Group 1',
-      members: [1, 2, 4],
-    },
-    {
-      id: 2,
-      groupName: 'Group 2',
-      members: [3, 5],
-    },
-  ]);
+  res.json(groups);
 });
 
 /**
@@ -54,13 +111,7 @@ app.get('/api/groups', (req: Request, res: Response) => {
  */
 app.get('/api/students', (req: Request, res: Response) => {
   // TODO: (sample response below)
-  res.json([
-    { id: 1, name: 'Alice' },
-    { id: 2, name: 'Bob' },
-    { id: 3, name: 'Charlie' },
-    { id: 4, name: 'David' },
-    { id: 5, name: 'Eve' },
-  ]);
+  res.json(students);
 });
 
 /**
@@ -71,12 +122,18 @@ app.get('/api/students', (req: Request, res: Response) => {
  * @returns {Object} - The created group object
  */
 app.post('/api/groups', (req: Request, res: Response) => {
-  // TODO: implement storage of a new group and return their info (sample response below)
-  res.json({
-    id: 3,
-    groupName: 'New Group',
-    members: [1, 2],
-  });
+  const name = req.body.groupName;
+  // edge-case: groupName has been taken
+  const targetGroup = groups.find((group) => group.groupName == name);
+  if (typeof targetGroup === "undefined") {
+    res.status(404).send("Another group already exists with the same name");
+  } else {
+    const newGroup: GroupSummary = { id: groupCounter, groupName: name, members: req.body.members };
+    groups.push(newGroup);
+    groupCounter++;
+    res.json(newGroup);
+  }
+
 });
 
 /**
@@ -86,7 +143,9 @@ app.post('/api/groups', (req: Request, res: Response) => {
  * @returns {void} - Empty response with status code 204
  */
 app.delete('/api/groups/:id', (req: Request, res: Response) => {
-  // TODO: (delete the group with the specified id)
+  const deletedGroup = req.params.id;
+  groups.sort((a :GroupSummary, b: GroupSummary) => a.id - b.id);
+  groups.splice(deletedGroup - 1, 1);
 
   res.sendStatus(204); // send back a 204 (do not modify this line)
 });
@@ -98,22 +157,24 @@ app.delete('/api/groups/:id', (req: Request, res: Response) => {
  * @returns {Object} - The group object with member details
  */
 app.get('/api/groups/:id', (req: Request, res: Response) => {
-  // TODO: (sample response below)
-  res.json({
-    id: 1,
-    groupName: 'Group 1',
-    members: [
-      { id: 1, name: 'Alice' },
-      { id: 2, name: 'Bob' },
-      { id: 3, name: 'Charlie' },
-    ],
-  });
+  const id = req.params.id;
+  const targetGroup = groups.find((group) => group.id == id);
+  // if no group found with matching id
+  if (typeof targetGroup === "undefined") {
+    res.status(404).send("Group not found");    
+  } else {
+    let members: any = [];
+    for (let member of targetGroup.members) {
+      let currStudent = students.find((student => student.id == member));
+      members.push(currStudent);
+    }
 
-  /* TODO:
-   * if (group id isn't valid) {
-   *   res.status(404).send("Group not found");
-   * }
-   */
+    res.json({
+      id: targetGroup?.id,
+      groupName: targetGroup?.groupName,
+      members: members,
+    });
+  }
 });
 
 app.listen(port, () => {
